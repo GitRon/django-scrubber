@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 class FieldFunc(Func):
-    '''
+    """
     Base class for creating Func-like scrubbers.
     Unlike Func, may receive a Field object as first argument, in which case it populates self.extra with its __dict__.
     This enable derived classes to use the Field's attributes, either in methods or as interpolation variables in
     self.template.
-    '''
+    """
     def __init__(self, field, *args, **kwargs):
         if isinstance(field, Field):
             super(FieldFunc, self).__init__(field.name, *args, **kwargs)
@@ -34,19 +34,19 @@ class FieldFunc(Func):
             super(FieldFunc, self).__init__(field, *args, **kwargs)
 
     def connection_setup(self, db_connection):
-        '''
+        """
         This function is called when initializing the scrubber, and allows doing setup necessary to support certain DB
         vendors. It should be implemented by derived classes of FieldFunc.
-        '''
+        """
         pass
 
 
 class Hash(FieldFunc):
-    '''
+    """
     Simple md5 hashing of content.
     If initialized with a Field object, will use its max_length attribute to truncate the generated hash.
     Otherwise, if initialized with a field name as string, will use the full hash length.
-    '''
+    """
 
     template = 'NULL'  # replaced during __init__
     arity = 1
@@ -68,9 +68,9 @@ class Hash(FieldFunc):
 
 
 class Lorem(FieldFunc):
-    '''
+    """
     Simple fixed-text scrubber, which replaces content with one paragraph of the well-known "lorem ipsum" text.
-    '''
+    """
 
     arity = 0
     template = (
@@ -82,9 +82,9 @@ class Lorem(FieldFunc):
 
 
 class Concat(object):
-    '''
+    """
     Wrapper around django.db.functions.Concat for lazy concatenation of scrubbers.
-    '''
+    """
 
     def __init__(self, *expressions, **kwargs):
         self.expressions = expressions
@@ -100,8 +100,10 @@ class Concat(object):
 class Faker(object):
     INITIALIZED_PROVIDERS = set()
 
-    def __init__(self, provider):
+    def __init__(self, provider, *args, **kwargs):
         self.provider = provider
+        self.provider_args = args
+        self.provider_kwargs = kwargs
 
     def _initialize_data(self):
         from .models import FakeData
@@ -136,7 +138,8 @@ class Faker(object):
         faker_instance.seed(settings_with_fallback('SCRUBBER_RANDOM_SEED'))
         for i in range(settings_with_fallback('SCRUBBER_ENTRIES_PER_PROVIDER')):
             fakedata.append(FakeData(provider=self.provider, provider_offset=i,
-                                     content=faker_instance.format(self.provider)))
+                                     content=faker_instance.format(self.provider, *self.provider_args,
+                                                                   **self.provider_kwargs)))
 
         try:
             FakeData.objects.bulk_create(fakedata)
@@ -147,11 +150,11 @@ class Faker(object):
         self.INITIALIZED_PROVIDERS.add(self.provider)
 
     def __call__(self, field):
-        '''
+        """
         Lazily instantiate the actual subquery used for scrubbing.
 
         The Faker scrubber ignores the field parameter.
-        '''
+        """
         if self.provider not in self.INITIALIZED_PROVIDERS:
             self._initialize_data()
 
