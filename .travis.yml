@@ -1,15 +1,12 @@
 language: python
 
-sudo: false
-
-dist: trusty
+dist: xenial
 
 python:
   - "2.7"
-  - "3.4"
   - "3.5"
   - "3.6"
-  # - "3.7" # wait for https://github.com/travis-ci/travis-ci/issues/9815
+  - "3.7"
 
 env:
   - TOXENV=py-django111-mysql
@@ -36,13 +33,11 @@ matrix:
       env: TOXENV=py-django21-postgres
     - python: "2.7"
       env: TOXENV=py-django21-sqlite
-    - python: "3.4"
-      env: TOXENV=py-django21-mysql
-    - python: "3.4"
-      env: TOXENV=py-django21-postgres
-    - python: "3.4"
-      env: TOXENV=py-django21-sqlite
   fast_finish: true
+
+services:
+  - mysql
+  - postgresql
 
 before_install:
   - pip install tox
